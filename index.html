@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jacobi & Gauss-Seidel</title>
+<style>
+:root{--bg:#0b0f24;--card:#141a3b;--line:#2b3566;--tx:#eaf0ff;--mut:#9aa7d6;--teal:#2ee6c8;--amb:#ffb547;--vio:#8a7bff;--red:#ff3b57}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Segoe UI",Tahoma,Arial,sans-serif;color:var(--tx);line-height:1.7;min-height:100vh;
+background:radial-gradient(60vmax 40vmax at 90% -10%,#2b2a8f55,transparent),radial-gradient(50vmax 36vmax at -10% 110%,#0b8f7c44,transparent),var(--bg)}
+header{text-align:center;padding:38px 14px 8px;position:relative}
+h1{font-size:clamp(1.6rem,5vw,2.7rem);font-weight:800;background:linear-gradient(90deg,var(--teal),var(--vio),var(--amb));-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{color:var(--mut);margin-top:6px}
+#lang{position:absolute;top:14px;inset-inline-start:14px;padding:7px 16px}
+main{max-width:1000px;margin:0 auto;padding:16px 12px 60px;display:grid;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:clamp(14px,3vw,26px)}
+.card[hidden]{display:none}
+.card.in{animation:rise .35s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+h2{font-size:1.15rem;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+h2 b{min-width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,var(--vio),var(--teal));color:#061018;font-size:.9rem}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.f{flex:1 1 150px}
+label{display:block;color:var(--mut);font-size:.86rem;margin-bottom:4px}
+input{font:inherit;color:var(--tx);background:#0a0e22;border:1px solid var(--line);border-radius:10px;padding:9px 6px;width:100%;direction:ltr;text-align:center}
+input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px #2ee6c840}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);color:var(--tx);background:#1b2350;padding:10px 18px;border-radius:11px;font-weight:600;transition:transform .15s,border-color .15s}
+button:hover{transform:translateY(-2px);border-color:var(--vio)}
+button.on{background:linear-gradient(135deg,var(--vio),#3d8bff);border-color:transparent}
+button.go{background:linear-gradient(135deg,var(--teal),#3fa7ff);color:#04131a;border:0}
+:focus-visible{outline:2px solid var(--amb);outline-offset:2px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}.seg button{flex:1 1 140px}
+.scroll{overflow:auto;max-height:70vh;padding-bottom:4px}
+.mat{display:grid;gap:6px;direction:ltr;width:max-content;align-items:center}
+.mat span{color:var(--teal);font-weight:700;text-align:center;font-size:.85rem}
+.mat input{width:66px}
+.mat .sep{border-left:2px dashed var(--line);height:100%;justify-self:center}
+input.mx,.mx{color:var(--red)!important;font-weight:800}
+input.mx{border-color:var(--red);background:#2a0a14}
+.legend{display:inline-flex;align-items:center;gap:6px;font-size:.86rem;color:var(--mut);margin-bottom:10px}
+.legend i{width:14px;height:14px;border-radius:4px;background:var(--red)}
+.eq{direction:ltr;font-family:"Cambria Math","Times New Roman",serif;font-size:1.05rem;padding:8px 12px;border-radius:10px;background:#0a0e22;border:1px solid var(--line);margin:6px 0;overflow-x:auto;white-space:nowrap}
+.eq .v{color:var(--teal)}.eq .n{color:var(--amb)}
+.lbl{font-size:.84rem;color:var(--mut);margin-top:10px}
+.chk{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;direction:ltr}
+.pill{padding:4px 10px;border-radius:99px;font-size:.84rem;border:1px solid var(--line)}
+.pill.ok{background:#2ee6c81f;color:var(--teal)}.pill.no{background:#ff6b8b22;color:#ff8aa3}
+.arrow{text-align:center;font-size:1.5rem;color:var(--amb);line-height:1.2}
+.note{padding:10px 13px;border-radius:11px;border:1px solid var(--line);background:#8a7bff1c;margin:10px 0;font-size:.92rem}
+.note.warn{background:#ff3b5722;border-color:var(--red)}.note.good{background:#2ee6c81a;border-color:var(--teal)}
+table{border-collapse:separate;border-spacing:0;direction:ltr;text-align:center;min-width:100%}
+th{background:#26307a;padding:9px 12px;position:sticky;top:0;z-index:1;font-family:"Cambria Math",serif;white-space:nowrap}
+td{padding:8px 12px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+td:first-child,th:first-child{position:sticky;left:0;background:#0f1538;color:var(--amb);font-weight:700;z-index:2}
+th:first-child{background:#26307a;color:var(--tx);z-index:3}
+tr.init td{color:var(--mut)}
+tr.last td:not(:first-child){color:var(--teal);font-weight:700;background:#2ee6c814}
+.res{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:14px;direction:ltr}
+.res div{padding:10px;border-radius:12px;text-align:center;background:#1d2766;border:1px solid var(--line)}
+.res small{color:var(--mut);display:block}.res strong{color:var(--teal);font-size:1.1rem}
+canvas{touch-action:none;cursor:crosshair;width:100%;display:block;background:#0a0e22;border:1px solid var(--line);border-radius:12px}
+.lg{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0;direction:ltr;font-size:.85rem}
+.lg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-inline-end:5px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin-bottom:12px}.tools .f{flex:1 1 130px}.tools button{padding:9px 14px}.hint{font-size:.8rem;color:var(--mut);margin-top:6px}
+.big{font-size:1.05rem;margin:6px 0 12px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <button id="lang">English</button>
+  <h1 data-i="title"></h1>
+  <p data-i="sub"></p>
+</header>
+<main>
+  <section class="card in">
+    <h2><b>1</b><span data-i="s1"></span></h2>
+    <div class="seg" id="mseg"><button data-m="J" data-i="mJ"></button><button data-m="G" data-i="mG"></button></div>
+    <div class="row" style="margin-top:12px">
+      <div class="f"><label for="n" data-i="nl"></label><input id="n" type="number" min="2" max="100" value="3"></div>
+      <button class="go" id="mk" data-i="mk"></button>
+    </div>
+  </section>
+
+  <section class="card" id="s2" hidden>
+    <h2><b>2</b><span data-i="s2"></span></h2>
+    <div class="legend"><i></i><span data-i="leg"></span></div>
+    <div class="scroll"><div class="mat" id="mat"></div></div>
+    <div class="row" style="margin-top:14px"><button class="go" id="arr" data-i="arr"></button></div>
+    <div id="err" class="note warn" hidden></div>
+  </section>
+
+  <section class="card" id="s3" hidden><h2><b>3</b><span data-i="s3"></span></h2><div id="dom"></div></section>
+  <section class="card" id="s4" hidden><h2><b>4</b><span data-i="s4"></span></h2><div id="iso"></div></section>
+
+  <section class="card" id="s5" hidden>
+    <h2><b>5</b><span data-i="s5"></span></h2>
+    <div class="scroll"><div class="mat" id="init"></div></div>
+    <div class="row" style="margin-top:12px">
+      <div class="f"><label for="dec" data-i="dec"></label><input id="dec" type="number" min="0" max="10" value="4"></div>
+      <div class="f"><label for="steps" data-i="steps"></label><input id="steps" type="number" min="1" max="500"></div>
+    </div>
+    <div class="seg" id="mseg2" style="margin-top:12px"><button data-m="J" data-i="tJ"></button><button data-m="G" data-i="tG"></button></div>
+    <div class="row" style="margin-top:12px"><button class="go" id="run" data-i="run"></button></div>
+  </section>
+
+  <section class="card" id="s6" hidden>
+    <h2><b>6</b><span data-i="s6"></span></h2>
+    <div id="msg"></div>
+    <div class="scroll"><table id="tb"></table></div>
+    <div class="res" id="res"></div>
+  </section>
+  <section class="card" id="s7" hidden>
+    <h2><b>7</b><span data-i="s7"></span></h2>
+    <div id="need"></div>
+    <div class="tools"><div class="f"><label for="rows2" data-i="rowsL"></label><input id="rows2" type="number" min="1" max="500"></div>
+      <button id="ap" class="go" data-i="ap"></button><button id="rq" data-i="req"></button><button id="au" data-i="auto"></button></div>
+    <div class="tools"><button id="cmV" class="on" data-i="cV"></button><button id="cmE" data-i="cE"></button><button id="zi">＋</button><button id="zo">－</button><button id="zr" data-i="rs"></button></div>
+    <canvas id="cv" role="img"></canvas><div class="lg" id="lg"></div><div class="hint" data-i="hint"></div>
+    <h2 style="margin-top:18px"><span data-i="stT"></span></h2>
+    <div id="st"></div>
+  </section>
+</main>
+
+<script>
+const T={
+ar:{title:"الحل العددي للمعادلات الخطية",sub:"جاكوبي | جاوس سايدل — حتى 100 معادلة",s1:"اختر الطريقة وعدد المعادلات",mJ:"طريقة جاكوبي",mG:"طريقة جاوس سايدل",nl:"عدد المعادلات (والمجاهيل) من 2 إلى 100",mk:"إنشاء المصفوفة",
+s2:"أدخل معاملات المعادلات والثوابت",leg:"اللون الأحمر = أكبر معامل في المعادلة",arr:"ترتيب المعادلات وتحليلها",s3:"الغلبة القطرية وترتيب المعادلات",s4:"فصل كل مجهول في طرف وحده",
+s5:"القيم الابتدائية والدقة",dec:"الدقة: عدد الأرقام بعد العلامة العشرية",steps:"عدد الصفوف (التكرارات) — اتركه فارغًا للتوقف التلقائي",tJ:"جدول جاكوبي",tG:"جدول جاوس سايدل",run:"إنشاء الجدول",s6:"جدول التكرارات",
+iter:"التكرار",init:"القيم الابتدائية",orig:"النظام كما أدخلته",cond:"الشرط: عنصر القطر ≥ مجموع القيم المطلقة لباقي صفه",
+okOrder:"المعادلات مرتبة بشكل صحيح، ننتقل للخطوة التالية.",needSwap:"الترتيب غير سليم، نبدّل أماكن المعادلات لتصبح المعاملات الكبرى على القطر:",
+sw:(r,p)=>`المعادلة الأصلية ${r} ⇒ مكان المعادلة ${p}`,after:"النظام بعد الترتيب",nomatch:"لا يمكن ترتيب النظام ليصبح قطريًا مهيمنًا، وقد لا تتقارب الطريقة. سنكمل بالترتيب الحالي للتجربة.",
+isoIntro:"نفصل x₁ من المعادلة الأولى، وx₂ من الثانية، وهكذا:",zeroRow:i=>`المعادلة ${i} كل معاملاتها أصفار.`,zeroDiag:i=>`عنصر القطر في المعادلة ${i} يساوي صفرًا.`,
+more:(a,b)=>`تم عرض ${a} من ${b} معادلة لتخفيف الصفحة. الحساب يشمل الجميع.`,
+conv:(m,k,i)=>`${m}: تكررت القيم لـ ${k} أرقام عشرية في آخر تكراريين، فتوقفنا عند التكرار ${i}.`,done:(m,i)=>`${m}: تم تنفيذ ${i} تكرارًا.`,notconv:" لم يتحقق الثبات عند الدقة المطلوبة، زد عدد التكرارات.",
+div:m=>`القيم تتباعد (${m}). تأكد أن النظام قطريًا مهيمنًا أو غيّر القيم الابتدائية.`,nJ:"جاكوبي",nG:"جاوس سايدل",other:"English",s7:"الرسم البياني وعدد التكرارات حتى القيمة الفعلية",cV:"قيم المجاهيل",cE:"الخطأ (لوغاريتمي)",stT:"متى وصل كل مجهول للقيمة الفعلية؟",ex:"القيمة الفعلية",rc:"عدد التكرارات",nv:"لم يصل",all:(k,i)=>`كل المجاهيل وصلت للقيمة الفعلية (بدقة ${k} أرقام عشرية) بعد ${i} تكرار.`,nall:"لم تصل كل المجاهيل للقيمة الفعلية بعد، زد عدد التكرارات.",sing:"تعذّر حساب القيمة الفعلية (النظام شاذ).",xl:"التكرار",need:(k,s)=>`عدد التكرارات اللازمة لتحقيق الناتج بدقة ${k} أرقام عشرية = ${s}`,needNo:"لم يتحقق الناتج الفعلي خلال 1500 تكرار (قد لا تتقارب الطريقة).",rowsL:"عدد الصفوف (التكرارات)",ap:"تطبيق",req:"اضبط على العدد المطلوب",auto:"تلقائي",rs:"إعادة الضبط",hint:"عجلة الماوس أو القرصة = تكبير | السحب = تحريك | Shift = محور x فقط | Alt = محور y فقط | نقر مزدوج = إعادة الضبط",stopL:s=>`توقف عند التكرار ${s}`,notYet:s=>s>0?`يحتاج ${s} تكرارًا — زد الصفوف`:"لم يتحقق بعد"},
+en:{title:"Numerical Solution of Linear Systems",sub:"Jacobi | Gauss-Seidel — up to 100 equations",s1:"Choose method and number of equations",mJ:"Jacobi method",mG:"Gauss-Seidel method",nl:"Number of equations (and unknowns), 2 to 100",mk:"Create matrix",
+s2:"Enter coefficients and constants",leg:"Red = largest coefficient in the equation",arr:"Arrange and analyse",s3:"Diagonal dominance and equation order",s4:"Isolate each unknown",
+s5:"Initial values and accuracy",dec:"Accuracy: digits after the decimal point",steps:"Number of rows (iterations) — leave empty to stop automatically",tJ:"Jacobi table",tG:"Gauss-Seidel table",run:"Build table",s6:"Iteration table",
+iter:"Iteration",init:"Initial",orig:"System as entered",cond:"Condition: diagonal element ≥ sum of absolute values of the rest of its row",
+okOrder:"The equations are already in a valid order. Moving on.",needSwap:"The order is not valid. We swap equations so the largest coefficients sit on the diagonal:",
+sw:(r,p)=>`Original equation ${r} ⇒ position ${p}`,after:"System after arrangement",nomatch:"This system cannot be arranged to be diagonally dominant, so the method may not converge. Continuing with the current order.",
+isoIntro:"We isolate x₁ from the first equation, x₂ from the second, and so on:",zeroRow:i=>`Equation ${i} has all-zero coefficients.`,zeroDiag:i=>`The diagonal element in equation ${i} is zero.`,
+more:(a,b)=>`Showing ${a} of ${b} equations to keep the page light. The calculation uses all of them.`,
+conv:(m,k,i)=>`${m}: values repeated to ${k} decimals over the last two iterations, so we stopped at iteration ${i}.`,done:(m,i)=>`${m}: ${i} iterations done.`,notconv:" The values have not settled at this accuracy; increase the iterations.",
+div:m=>`The values are diverging (${m}). Make sure the system is diagonally dominant or change the initial values.`,nJ:"Jacobi",nG:"Gauss-Seidel",other:"عربي",s7:"Chart and iterations needed to reach the exact value",cV:"Unknown values",cE:"Error (log scale)",stT:"When did each unknown reach its exact value?",ex:"Exact value",rc:"Iterations",nv:"Not reached",all:(k,i)=>`All unknowns reached the exact value (to ${k} decimals) after ${i} iterations.`,nall:"Not all unknowns reached the exact value yet; increase the iterations.",sing:"The exact value could not be computed (singular system).",xl:"Iteration",need:(k,s)=>`Iterations needed to reach the result to ${k} decimals = ${s}`,needNo:"The exact value was not reached within 1500 iterations (the method may not converge).",rowsL:"Number of rows (iterations)",ap:"Apply",req:"Set to required number",auto:"Auto",rs:"Reset view",hint:"Mouse wheel or pinch = zoom | Drag = pan | Shift = x axis only | Alt = y axis only | Double-click = reset",stopL:s=>`Stops at iteration ${s}`,notYet:s=>s>0?`Needs ${s} iterations — add rows`:"Not reached yet"}};
+let L="ar",method="J",n=3,A=[],B=[];
+const $=id=>document.getElementById(id),t=k=>T[L][k];
+const SUB="₀₁₂₃₄₅₆₇₈₉",sb=i=>String(i).replace(/\d/g,d=>SUB[d]),names=()=>Array.from({length:n},(_,i)=>"x"+sb(i+1));
+const f=(v,k=6)=>{let s=+v.toFixed(k);return String(Object.is(s,-0)?0:s)};
+const num=s=>{const v=parseFloat(String(s).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace("٫",".").replace(",","."));return isNaN(v)?0:v};
+function show(id,sc=true){const e=$(id);e.hidden=false;if(sc){e.classList.remove("in");void e.offsetWidth;e.classList.add("in");e.scrollIntoView({behavior:"smooth",block:"start"})}}
+const hide=(...a)=>a.forEach(i=>$(i).hidden=true);
+const grid=(el,cols,h)=>{el.style.gridTemplateColumns=`repeat(${cols},auto)`;el.innerHTML=h};
+const mxIdx=(r,p)=>{let m=0,ix=0;for(let j=0;j<r.length;j++){const a=Math.abs(r[j]);if(a>m){m=a;ix=j}}return m>0&&Math.abs(r[p])===m?p:ix};
+
+function applyLang(){
+  document.documentElement.lang=L;document.documentElement.dir=L==="ar"?"rtl":"ltr";
+  document.querySelectorAll("[data-i]").forEach(e=>e.textContent=t(e.dataset.i));
+  $("lang").textContent=t("other");document.title=t("title");
+  if(!$("s3").hidden)arrange(true);if(!$("s6").hidden)solve();
+}
+$("lang").onclick=()=>{L=L==="ar"?"en":"ar";applyLang()};
+function setMethod(m){method=m;document.querySelectorAll("#mseg button,#mseg2 button").forEach(b=>b.classList.toggle("on",b.dataset.m===m))}
+document.querySelectorAll("#mseg button,#mseg2 button").forEach(b=>b.onclick=()=>{setMethod(b.dataset.m);if(b.closest("#mseg2")&&!$("s6").hidden)solve()});
+
+function buildMat(){
+  n=Math.min(100,Math.max(2,parseInt($("n").value)||3));$("n").value=n;
+  const h=[];names().forEach(m=>h.push(`<span>${m}</span>`));h.push("<span></span><span>b</span>");
+  for(let i=0;i<n;i++){for(let j=0;j<n;j++)h.push(`<input inputmode="decimal" data-r="${i}" data-c="${j}">`);h.push(`<div class="sep"></div><input inputmode="decimal" data-r="${i}" data-c="b">`)}
+  grid($("mat"),n+2,h.join(""));hide("s3","s4","s5","s6","s7","err");show("s2");
+}
+$("mk").onclick=buildMat;
+$("mat").addEventListener("input",e=>{
+  const r=e.target.dataset.r;if(r===undefined)return;
+  const ins=[...$("mat").querySelectorAll(`input[data-r="${r}"]`)].slice(0,n);
+  const vals=ins.map(x=>num(x.value));let m=0,ix=-1;vals.forEach((v,j)=>{if(Math.abs(v)>m){m=Math.abs(v);ix=j}});
+  const p=+r;if(m>0&&Math.abs(vals[p])===m)ix=p;
+  ins.forEach((x,j)=>x.classList.toggle("mx",j===ix&&m>0));
+});
+function readMat(){
+  A=Array.from({length:n},()=>new Array(n).fill(0));B=new Array(n).fill(0);
+  $("mat").querySelectorAll("input").forEach(e=>{const r=+e.dataset.r,c=e.dataset.c,v=num(e.value);if(c==="b")B[r]=v;else A[r][+c]=v});
+}
+function eqStr(a,b,p){
+  const mi=mxIdx(a,p),nm=names();let s="";
+  a.forEach((c,j)=>{if(!c)return;const ab=Math.abs(c),cl=j===mi?"mx":"n",
+    tm=`<span class="${cl}">${ab===1?"":f(ab)}</span><span class="v">${nm[j]}</span>`;
+    s+=s?(c<0?" − ":" + ")+tm:(c<0?"−":"")+tm});
+  return(s||"0")+` = <span class="n">${f(b)}</span>`;
+}
+function findOrder(){
+  const tot=A.map(r=>r.reduce((s,v)=>s+Math.abs(v),0)),ok=(r,p)=>2*Math.abs(A[r][p])>=tot[r]-1e-12&&A[r][p]!==0;
+  const mp=new Array(n).fill(-1),mr=new Array(n).fill(-1);
+  for(let p=0;p<n;p++)if(ok(p,p)){mp[p]=p;mr[p]=p}
+  const tr=(r,vis)=>{for(let p=0;p<n;p++)if(!vis[p]&&ok(r,p)){vis[p]=1;if(mp[p]<0||tr(mp[p],vis)){mp[p]=r;mr[r]=p;return true}}return false};
+  for(let r=0;r<n;r++)if(mr[r]<0&&!tr(r,new Array(n).fill(false)))return null;
+  return mp;
+}
+const SHOW=8;
+function arrange(keep){
+  readMat();
+  for(let i=0;i<n;i++)if(A[i].every(v=>v===0)){const e=$("err");e.textContent=t("zeroRow")(i+1);e.hidden=false;return}
+  $("err").hidden=true;
+  let h=`<div class="lbl">${t("orig")}</div>`;
+  const cap=Math.min(n,SHOW);
+  for(let i=0;i<cap;i++)h+=`<div class="eq">${eqStr(A[i],B[i],i)}</div>`;
+  if(n>cap)h+=`<div class="note">${t("more")(cap,n)}</div>`;
+  h+=`<div class="lbl">${t("cond")}</div><div class="chk">`;
+  A.forEach((r,i)=>{const o=r.reduce((s,v,j)=>j===i?s:s+Math.abs(v),0),ok=Math.abs(r[i])>=o;
+    h+=`<span class="pill ${ok?"ok":"no"}">${i+1}: ${f(Math.abs(r[i]),3)} ${ok?"≥":"<"} ${f(o,3)} ${ok?"✓":"✗"}</span>`});
+  h+="</div>";
+  const ord=findOrder();
+  if(ord&&ord.every((r,i)=>r===i))h+=`<div class="note good">${t("okOrder")}</div>`;
+  else if(ord){
+    h+=`<div class="note">${t("needSwap")}</div><div class="chk">`;
+    ord.forEach((r,p)=>{if(r!==p)h+=`<span class="pill ok">${t("sw")(r+1,p+1)}</span>`});
+    h+=`</div><div class="arrow">⬇</div><div class="lbl">${t("after")}</div>`;
+    const A2=ord.map(r=>A[r]),B2=ord.map(r=>B[r]);
+    for(let i=0;i<cap;i++)h+=`<div class="eq">${eqStr(A2[i],B2[i],i)}</div>`;
+    A=A2;B=B2;
+  }else h+=`<div class="note warn">${t("nomatch")}</div>`;
+  $("dom").innerHTML=h;show("s3",!keep);
+  const nm=names();let s=`<div class="lbl">${t("isoIntro")}</div>`;
+  for(let i=0;i<cap;i++){
+    const r=A[i];if(!r[i]){s+=`<div class="note warn">${t("zeroDiag")(i+1)}</div>`;continue}
+    const mi=mxIdx(r,i);let q="";
+    r.forEach((c,j)=>{if(j===i||!c)return;const v=-c;q+=(v<0?" − ":" + ")+`<span class="${j===mi?"mx":"n"}">${f(Math.abs(v))}</span><span class="v">${nm[j]}</span>`});
+    s+=`<div class="eq"><span class="v">${nm[i]}</span> = <span class="${mi===i?"mx":"n"}">1</span>⁄<span class="${mi===i?"mx":"n"}">${f(r[i])}</span> [ <span class="n">${f(B[i])}</span>${q} ]</div>`;
+    if(i<cap-1)s+=`<div class="arrow">⬇</div>`;
+  }
+  if(n>cap)s+=`<div class="note">${t("more")(cap,n)}</div>`;
+  $("iso").innerHTML=s;show("s4",!keep);
+  if(!keep||!$("init").children.length){
+    const h2=nm.map(m=>`<span>${m}</span>`).join("")+nm.map(()=>`<input inputmode="decimal" value="0" class="iv">`).join("");
+    grid($("init"),n,h2);
+  }
+  show("s5",!keep);
+}
+$("arr").onclick=()=>arrange(false);
+
+function solve(){
+  const k=Math.min(10,Math.max(0,parseInt($("dec").value)||0)),fixed=parseInt($("steps").value)||0,MAX=fixed||300;
+  let x=[...document.querySelectorAll(".iv")].map(e=>num(e.value));
+  const rows=[x.slice()],rd=v=>v.map(a=>a.toFixed(k));
+  let stop="max",prev=rd(x);
+  const G=method==="G";
+  for(let it=1;it<=MAX;it++){
+    const src=G?x:x.slice(),nx=G?x:new Array(n);
+    for(let i=0;i<n;i++){const a=A[i];let s=B[i];for(let j=0;j<n;j++)if(j!==i)s-=a[j]*src[j];nx[i]=s/a[i]}
+    x=nx;rows.push(x.slice());
+    if(x.some(v=>!isFinite(v)||Math.abs(v)>1e12)){stop="div";break}
+    const r=rd(x);
+    if(!fixed&&r.every((v,i)=>v===prev[i])){stop="conv";break}
+    prev=r;
+  }
+  const nm=names(),mn=method==="J"?t("nJ"):t("nG"),last=rows.length-1,cl=s=>s.replace(/^-0(\.0*)?$/,"0$1");
+  const out=[`<thead><tr><th>${t("iter")}</th>${nm.map(m=>`<th>${m}</th>`).join("")}</tr></thead><tbody>`];
+  rows.forEach((r,i)=>out.push(`<tr class="${i===0?"init":i===last?"last":""}"><td>${i===0?t("init"):i}</td>${r.map(v=>`<td>${isFinite(v)?cl(v.toFixed(k)):"∞"}</td>`).join("")}</tr>`));
+  $("tb").innerHTML=out.join("")+"</tbody>";
+  $("msg").innerHTML=stop==="div"?`<div class="note warn">${t("div")(mn)}</div>`
+    :stop==="conv"?`<div class="note good">${t("conv")(mn,k,last)}</div>`
+    :`<div class="note">${t("done")(mn,last)}${fixed?"":t("notconv")}</div>`;
+  $("res").innerHTML=stop==="div"?"":x.map((v,i)=>`<div><small>${nm[i]}</small><strong>${cl(v.toFixed(k))}</strong></div>`).join("");
+  const fresh=$("s6").hidden;show("s6",fresh);
+  LR=rows;LE=exactSolve();V=null;hov=null;LS=LE?needed(k,rows[0].slice()):-1;$("rows2").value=rows.length-1;
+  $("need").innerHTML=!LE?"":LS>=0?`<div class="note good big">${t("need")(k,LS)}</div>`:`<div class="note warn">${t("needNo")}</div>`;
+  analyse(k);show("s7",false);
+  if(fresh)$("s7").scrollIntoView({behavior:"smooth",block:"start"});
+}
+let LR=[],LE=null,cm="v";
+function exactSolve(){const M=A.map((r,i)=>[...r,B[i]]);for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;if(Math.abs(M[p][c])<1e-14)return null;[M[c],M[p]]=[M[p],M[c]];for(let r=c+1;r<n;r++){const m=M[r][c]/M[c][c];if(m)for(let j=c;j<=n;j++)M[r][j]-=m*M[c][j]}}const x=new Array(n);for(let i=n-1;i>=0;i--){let s=M[i][n];for(let j=i+1;j<n;j++)s-=M[i][j]*x[j];x[i]=s/M[i][i]}return x}
+function analyse(k){
+  const nm=names(),last=LR.length-1;
+  if(!LE){$("st").innerHTML=`<div class="note warn">${t("sing")}</div>`;draw();return}
+  const rc=LE.map((e,i)=>{const w=e.toFixed(k);let it=last;while(it>=0&&isFinite(LR[it][i])&&LR[it][i].toFixed(k)===w)it--;return it===last?-1:it+1});
+  const ok=rc.every(v=>v>=0),mx=Math.max(...rc);
+  let h=ok?`<div class="note good big">${t("all")(k,mx)}</div>`:`<div class="note warn">${t("nall")}</div>`;
+  h+=`<div class="scroll" style="max-height:40vh"><table><thead><tr><th></th><th>${t("ex")}</th><th>${t("rc")}</th></tr></thead><tbody>`+
+    LE.map((e,i)=>`<tr><td>${nm[i]}</td><td>${f(e,k)}</td><td>${rc[i]<0?t("nv"):rc[i]}</td></tr>`).join("")+"</tbody></table></div>";
+  $("st").innerHTML=h;draw();
+}
+function needed(k,x){
+  const G=method==="G",w=LE.map(e=>e.toFixed(k));let run=0,first=0;
+  if(x.every((v,i)=>v.toFixed(k)===w[i])){run=1;first=0}
+  for(let it=1;it<=1500;it++){
+    const src=G?x:x.slice(),nx=G?x:new Array(n);
+    for(let i=0;i<n;i++){const a=A[i];let s=B[i];for(let j=0;j<n;j++)if(j!==i)s-=a[j]*src[j];nx[i]=s/a[i]}
+    x=nx;if(x.some(v=>!isFinite(v)||Math.abs(v)>1e12))return -1;
+    if(x.every((v,i)=>v.toFixed(k)===w[i])){if(run===0)first=it;if(++run>=8)return first}else run=0;
+  }
+  return -1}
+let V=null,hov=null,LS=-1,pt0=new Map(),pinch=0,moved=false,raf=0;
+const PL=54,PR=12,PT=12,PB=28;
+const valAt=(it,i)=>cm==="e"&&LE?Math.log10(Math.max(Math.abs(LR[it][i]-LE[i]),1e-12)):LR[it][i];
+const colr=i=>`hsl(${Math.round(i*360/n)},80%,62%)`;
+function fit(){
+  let lo=1/0,hi=-1/0;
+  for(let it=0;it<LR.length;it++)for(let i=0;i<n;i++){const v=valAt(it,i);if(isFinite(v)){if(v<lo)lo=v;if(v>hi)hi=v}}
+  if(cm!=="e"&&LE)LE.forEach(v=>{if(v<lo)lo=v;if(v>hi)hi=v});
+  if(!isFinite(lo)){lo=0;hi=1}if(hi===lo){hi+=1;lo-=1}
+  const p=(hi-lo)*.12,N=Math.max(LR.length-1,1);
+  V={x0:-N*.03-.3,x1:N*1.03+.3,y0:lo-p,y1:hi+p};
+}
+function ticks(a,b,cnt,int){
+  const raw=(b-a)/cnt,mg=Math.pow(10,Math.floor(Math.log10(raw)));
+  let st=[1,2,5,10].map(m=>m*mg).find(v=>v>=raw)||raw;if(int)st=Math.max(1,Math.round(st));
+  const r=[];for(let v=Math.ceil(a/st)*st,c=0;v<=b&&c<60;v+=st,c++)r.push(+v.toFixed(12));r.step=st;return r}
+function draw(){
+  const cv=$("cv");if(!LR.length||$("s7").hidden)return;
+  if(!V)fit();
+  const W=cv.parentElement.clientWidth,H=340,d=window.devicePixelRatio||1;
+  cv.width=W*d;cv.height=H*d;cv.style.height=H+"px";
+  const c=cv.getContext("2d");c.setTransform(d,0,0,d,0,0);c.direction="ltr";
+  const iw=W-PL-PR,ih=H-PT-PB,e=cm==="e"&&LE,last=LR.length-1,nm=names();
+  const X=it=>PL+(it-V.x0)/(V.x1-V.x0)*iw,Y=v=>PT+ih-(v-V.y0)/(V.y1-V.y0)*ih;
+  cv._m={iw,ih,X,Y};
+  c.font="11px sans-serif";c.lineWidth=1;c.strokeStyle="#2b3566";c.fillStyle="#9aa7d6";
+  const ty=ticks(V.y0,V.y1,5),tx=ticks(V.x0,V.x1,8,true),dec=Math.min(8,Math.max(0,-Math.floor(Math.log10(ty.step||1))));
+  c.textAlign="right";
+  ty.forEach(v=>{const y=Y(v);if(y<PT||y>PT+ih)return;c.beginPath();c.moveTo(PL,y);c.lineTo(W-PR,y);c.stroke();c.fillText(e?"1e"+v.toFixed(dec):v.toFixed(dec),PL-6,y+4)});
+  c.textAlign="center";
+  tx.forEach(v=>{const x=X(v);if(x<PL||x>W-PR)return;c.beginPath();c.moveTo(x,PT);c.lineTo(x,PT+ih);c.stroke();c.fillText(v,x,H-9)});
+  c.save();c.beginPath();c.rect(PL,PT,iw,ih);c.clip();
+  if(!e&&LE){c.setLineDash([5,4]);LE.forEach((v,i)=>{c.strokeStyle=colr(i);c.beginPath();c.moveTo(PL,Y(v));c.lineTo(W-PR,Y(v));c.stroke()});c.setLineDash([])}
+  const i0=Math.max(0,Math.floor(V.x0)-1),i1=Math.min(last,Math.ceil(V.x1)+1);
+  c.lineWidth=n>20?1:2;
+  for(let i=0;i<n;i++){c.strokeStyle=colr(i);c.beginPath();let st=false;
+    for(let it=i0;it<=i1;it++){const v=valAt(it,i);if(!isFinite(v)){st=false;continue}st?c.lineTo(X(it),Y(v)):c.moveTo(X(it),Y(v));st=true}c.stroke()}
+  if(n*(i1-i0+1)<=2500){const r=n>20?2.5:4;c.lineWidth=1.5;
+    for(let i=0;i<n;i++){c.fillStyle=colr(i);c.strokeStyle="#0a0e22";
+      for(let it=i0;it<=i1;it++){const v=valAt(it,i);if(!isFinite(v))continue;c.beginPath();c.arc(X(it),Y(v),r,0,7);c.fill();c.stroke()}}}
+  if(LE&&last>0){
+    const hit=LS>=0&&LS<=last,it=hit?LS:last;let ia=0,w=-1;
+    for(let i=0;i<n;i++){const er=Math.abs(LR[it][i]-LE[i]);if(er>w){w=er;ia=i}}
+    const px=X(it),py=Y(valAt(it,ia)),cl=hit?"#ffb547":"#ff6b8b",txt=hit?t("stopL")(LS):t("notYet")(LS);
+    c.strokeStyle=cl;c.lineWidth=1;c.setLineDash([4,4]);c.beginPath();c.moveTo(px,PT);c.lineTo(px,PT+ih);c.stroke();c.setLineDash([]);
+    c.font="bold 12px sans-serif";const bw=c.measureText(txt).width+16,bh=24;
+    let bx=px-bw-44,by=py-72;if(bx<PL+4)bx=px+44;if(bx+bw>W-PR-4)bx=W-PR-4-bw;if(bx<PL+4)bx=PL+4;
+    if(by<PT+4)by=py+48;if(by+bh>PT+ih-4)by=PT+ih-4-bh;if(by<PT+4)by=PT+4;
+    const sx=Math.min(Math.max(px,bx),bx+bw),sy=by<py?by+bh:by,an=Math.atan2(py-sy,px-sx),ca=Math.cos(an),sa=Math.sin(an),tx2=px-ca*9,ty2=py-sa*9;
+    c.strokeStyle=cl;c.fillStyle=cl;c.lineWidth=2;c.beginPath();c.moveTo(sx,sy);c.lineTo(tx2,ty2);c.stroke();
+    const hx=px-ca*8,hy=py-sa*8;c.beginPath();c.moveTo(hx,hy);c.lineTo(hx-ca*12-sa*5,hy-sa*12+ca*5);c.lineTo(hx-ca*12+sa*5,hy-sa*12-ca*5);c.closePath();c.fill();
+    c.beginPath();c.arc(px,py,8,0,7);c.stroke();
+    c.fillStyle="#141a3b";c.fillRect(bx,by,bw,bh);c.strokeRect(bx,by,bw,bh);c.fillStyle=cl;c.textAlign="center";c.fillText(txt,bx+bw/2,by+16);
+  }
+  c.restore();
+  if(hov&&hov.it<=last){
+    const v=valAt(hov.it,hov.i),px=X(hov.it),py=Y(v);c.strokeStyle="#fff";c.lineWidth=2;c.beginPath();c.arc(px,py,7,0,7);c.stroke();
+    const tx3=`${nm[hov.i]} · ${t("iter")} ${hov.it} · ${f(LR[hov.it][hov.i],6)}`;c.font="12px sans-serif";
+    const bw=c.measureText(tx3).width+14;let bx=Math.min(Math.max(px-bw/2,PL),W-PR-bw),by=py-34;if(by<PT)by=py+12;
+    c.fillStyle="#000c";c.fillRect(bx,by,bw,22);c.fillStyle="#fff";c.textAlign="left";c.fillText(tx3,bx+7,by+15);
+  }
+  $("lg").innerHTML=(n<=10?nm.map((m,i)=>`<span><i style="background:${colr(i)}"></i>${m}</span>`).join(""):"")+"<span>"+t("xl")+" →</span>";
+}
+const redraw=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(draw)};
+function zoom(fc,cx,cy,mx,my){
+  const m=$("cv")._m;if(!m||!V)return;
+  const dx=V.x0+(cx-PL)/m.iw*(V.x1-V.x0),dy=V.y0+(m.ih-(cy-PT))/m.ih*(V.y1-V.y0);
+  if(mx){const a=dx-(dx-V.x0)*fc,b=dx+(V.x1-dx)*fc;if(b-a>.25&&b-a<1e5){V.x0=a;V.x1=b}}
+  if(my){const a=dy-(dy-V.y0)*fc,b=dy+(V.y1-dy)*fc;if(b-a>1e-9&&b-a<1e12){V.y0=a;V.y1=b}}
+  redraw()}
+const pos=ev=>{const r=$("cv").getBoundingClientRect();return{x:ev.clientX-r.left,y:ev.clientY-r.top}};
+function near(p){
+  const m=$("cv")._m;if(!m||!V)return null;let best=null,bd=196;
+  const i0=Math.max(0,Math.floor(V.x0)),i1=Math.min(LR.length-1,Math.ceil(V.x1));
+  for(let it=i0;it<=i1;it++){const x=m.X(it);if(Math.abs(x-p.x)>14)continue;
+    for(let i=0;i<n;i++){const v=valAt(it,i);if(!isFinite(v))continue;const dd=(x-p.x)**2+(m.Y(v)-p.y)**2;if(dd<bd){bd=dd;best={it,i}}}}
+  return best}
+const cvs=$("cv");
+cvs.addEventListener("wheel",ev=>{ev.preventDefault();const p=pos(ev);zoom(Math.exp(ev.deltaY*.0015),p.x,p.y,!ev.altKey,!ev.shiftKey)},{passive:false});
+cvs.addEventListener("pointerdown",ev=>{cvs.setPointerCapture(ev.pointerId);pt0.set(ev.pointerId,pos(ev));moved=false;pinch=0});
+cvs.addEventListener("pointermove",ev=>{
+  const p=pos(ev),m=cvs._m;if(!m||!V)return;
+  if(!pt0.has(ev.pointerId)){hov=near(p);redraw();return}
+  pt0.set(ev.pointerId,p);
+  if(pt0.size===1){
+    const o=cvs._last||p;cvs._last=p;
+    if(Math.abs(p.x-o.x)+Math.abs(p.y-o.y)>0){const dx=p.x-o.x,dy=p.y-o.y;if(Math.abs(dx)+Math.abs(dy)>1)moved=true;
+      const sx=(V.x1-V.x0)/m.iw,sy=(V.y1-V.y0)/m.ih;V.x0-=dx*sx;V.x1-=dx*sx;V.y0+=dy*sy;V.y1+=dy*sy;hov=null;redraw()}
+  }else if(pt0.size===2){
+    const [a,b]=[...pt0.values()],dist=Math.hypot(a.x-b.x,a.y-b.y);moved=true;
+    if(pinch>0)zoom(pinch/dist,(a.x+b.x)/2,(a.y+b.y)/2,true,true);pinch=dist}
+});
+const up=ev=>{const p=pt0.get(ev.pointerId);pt0.delete(ev.pointerId);cvs._last=null;pinch=0;
+  if(p&&!moved&&ev.type==="pointerup"){hov=near(p);redraw()}};
+cvs.addEventListener("pointerup",up);cvs.addEventListener("pointercancel",up);
+cvs.addEventListener("pointerleave",()=>{if(!pt0.size){hov=null;redraw()}});
+cvs.addEventListener("dblclick",()=>{V=null;redraw()});
+const ctr=()=>({x:PL+(cvs.clientWidth-PL-PR)/2,y:PT+(340-PT-PB)/2});
+$("zi").onclick=()=>{const p=ctr();zoom(.6,p.x,p.y,true,true)};
+$("zo").onclick=()=>{const p=ctr();zoom(1.6,p.x,p.y,true,true)};
+$("zr").onclick=()=>{V=null;redraw()};
+$("cmV").onclick=()=>{cm="v";$("cmV").classList.add("on");$("cmE").classList.remove("on");V=null;redraw()};
+$("cmE").onclick=()=>{cm="e";$("cmE").classList.add("on");$("cmV").classList.remove("on");V=null;redraw()};
+$("ap").onclick=()=>{$("steps").value=Math.max(1,parseInt($("rows2").value)||1);solve()};
+$("rq").onclick=()=>{if(LS>=0){$("steps").value=Math.max(1,LS);solve()}};
+$("au").onclick=()=>{$("steps").value="";solve()};
+window.addEventListener("resize",redraw);
+$("run").onclick=solve;
+setMethod("J");applyLang();
+</script>
+</body>
+</html>
